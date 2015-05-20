@@ -26,19 +26,35 @@ library(sp)
 library(rgdal)
 
 NOLA.proj <- CRS("+proj=lcc +lat_1=29.3 +lat_2=30.7 +lat_0=28.5 +lon_0=-91.33333333333333 +x_0=999999.9999999999 +y_0=0 +datum=NAD83 +units=us-ft +no_defs +ellps=GRS80 +towgs84=0,0,0")
+
+# readOGR() is a function in the rgdal package that reads in shapefiles as R Spatial objects
+# spTransform is used to transform Spatial objects from one coordinate system to another. The block groups
+#  were originally in a lat/long projection, but for local data I usually prefer to use the Louisiana South Stateplane projection, which is defined as NOLA.proj in the code."
+# ??so do we not need NOLA.proj? and then can get rid of the spTransform line???
+# to get block groups shapefiles -> https://www.census.gov/cgi-bin/geo/shapefiles2010/main
 BG <- readOGR(dsn=getwd(),layer="orl_census2010_blockgrp_pl")
+# for readOGR -> the data source name (dsn= argument) is the folder (directory) where the shapefile is, and the layer is the name of the shapefile (without the .shp extension)
+# ^conti... getwd() returns an absolute filepath representing the current working directory...points to working directory
 BG <- spTransform(BG, CRS=NOLA.proj)
 s.ages <- read.csv("ACS_13_5YR_B25034_with_ann.csv",skip=1)
+# ^Year Structure Built
 pov <- read.csv("ACS_13_5YR_C17002_with_ann.csv",skip=1)
+# ^Ratio of Income to the Poverty Level
 house.time <- read.csv("ACS_13_5YR_B25038_with_ann.csv",colClasses=c("character","numeric","character",rep("numeric",30)),skip=1)
+# ^Year Householder Moved into Unit
 
 #We then clean and analyze the ACS data, and merge them with the block groups:
 s.ages$Id2 <- substr(s.ages$Id,10,length(s.ages$Id))
+# substr -> extract/replace susbstrings in character vector: substr(vector, first element, last element)
+# so replaces elements in Id2 with Id?
 s.ages$PctB1949 <- (s.ages$Estimate..Total....Built.1940.to.1949+s.ages$Estimate..Total....Built.1939.or.earlier)/s.ages$Estimate..Total.
+# ^ % of houses built before 1949
 s.ages <- subset(s.ages,select=c(Id2,PctB1949))
+# subset -> returns that subset selected. so only need the Id2 and % of house built before 1949 
 
 pov$Id2 <- substr(pov$Id,10,length(pov$Id))
 pov$U2pov <- (pov$Estimate..Total.-pov$Estimate..Total....2.00.and.over)/pov$Estimate..Total.
+# ^ % of pop with income to poverty level bellow 2.00...make less than twice poverty level
 pov <- subset(pov,select=c(Id2,U2pov))
 
 house.time$Id2 <- substr(house.time$Id,10,length(house.time$Id))
@@ -47,13 +63,21 @@ house.time$MoveB00 <- 1-((house.time$Estimate..Owner.occupied....Moved.in.2010.o
 	house.time$Estimate..Renter.occupied....Moved.in.2010.or.later+
 	house.time$Estimate..Renter.occupied....Moved.in.2000.to.2009)/
 	house.time$Estimate..Total.)
+# ^ % of people who moved in before 2000
 house.time <- subset(house.time,select=c(Id2,MoveB00))
 
+# merge -> merge two data frames by common colums or row names
 BG <- merge(x=BG,y=s.ages,by.x="GEOID10",by.y="Id2")
 BG <- merge(x=BG,y=pov,by.x="GEOID10",by.y="Id2")
 BG <- merge(x=BG,y=house.time,by.x="GEOID10",by.y="Id2")
+# so now all the census data has been added to the shapefile
 
-#Before performing analysis, we clean the block group data to remove large, mostly empty, block groups. It is also helpful to look at the variables on a block group level to see if they look accurate. ACS data is not perfect. Block group level data only exists for 5-year estimates, and some characteristics will change substantially over the course of 5 years. Mapping each variable allows us to verify the data and identify potential issues. The selected variables seem to work well, but this was a particular concern in New Orleans, whose population characteristics have changed rapidly post-Katrina.
+#Before performing analysis, we clean the block group data to remove large, mostly empty, block groups. It is also helpful to look
+# at the variables on a block group level to see if they look accurate. ACS data is not perfect. Block group level data only exists
+# for 5-year estimates, and some characteristics will change substantially over the course of 5 years. Mapping each variable allows
+# us to verify the data and identify potential issues. The selected variables seem to work well, but this was a particular concern
+# in New Orleans, whose population characteristics have changed rapidly post-Katrina.
+
 BG$BG.index <- 1:nrow(BG)
 BG <- subset(BG,select=c(GEOID10,ALAND10,TOTAL_HU,PctB1949,U2pov,MoveB00))
 BG <- BG[-26,] #removes Lake Pontchartrain

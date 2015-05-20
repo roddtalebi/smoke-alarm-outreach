@@ -20,7 +20,7 @@
 
 
 setwd("/Users/Rodd/Downloads/Programing/GitHub/Smoke Alarm/smoke-alarm-outreach/")
-packages = "/var/folders/8t/4cmph4md5g1f9cnlj_f1_9x40000gn/T//Rtmp9aCZdW/downloaded_packages" # or /Users/Rodd/Downloads/Programing/R/
+packages = "/Users/Rodd/Downloads/Programing/R" # or /var/folders/8t/4cmph4md5g1f9cnlj_f1_9x40000gn/T//Rtmp9aCZdW/downloaded_packages
 .libPaths(packages) #gets/sets the library trees within which packages are looked for.
 
 require(reshape)
@@ -54,6 +54,7 @@ geo.vars$B1950 <- (geo.vars$BUILT<1950)+0 #will return a 0 for FALSE and 1 for T
 geo.vars$B200P <- (geo.vars$POOR<200)+0 #0 for FALSE, 1 for TRUE
 geo.vars$MOVEB00 <- (geo.vars$HHMOVE<2000)+0
 
+# I think LA is 4480 for SMSA and county is 06037 -> https://www.census.gov/population/metro/files/lists/historical/63mfips.txt
 # 'which' function finds which arguements are TRUE and returns only those
 nola.met <- geo.vars[which(as.character(geo.vars$SMSA)=="'5560'"),] #The New Orleans Metro is SMSA code 5560
 # the above finds the rows with SMSA = 5560 and stores those rows in nola.met...but I think it shoud have "5560" not "'5560'"
